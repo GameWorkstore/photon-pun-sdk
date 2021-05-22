@@ -1,0 +1,16 @@
+{
+  "name": "com.gameworkstore.photonpunsdk",
+  "version": "2.3.1003",
+  "displayName": "GameWorkstore PhotonPUN2 SDK",
+  "description": "PhotonPUN2 SDK C# SDK for Unity.",
+  "unity": "2020.1",
+  "icon": ".icon.png",
+  "keywords": [ "photon", "pun", "sdk", "multiplayer" ],
+  "author": {
+    "name": "Game Workstore",
+    "email": "contact@gameworkstore.com",
+    "url": "https://gameworkstore.com"
+  },
+  "dependencies": {
+  }
+}
