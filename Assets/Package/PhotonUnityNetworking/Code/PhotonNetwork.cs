@@ -1,3 +1,4 @@
+#define GAMEWORKSTORE
 // ----------------------------------------------------------------------------
 // <copyright file="PhotonNetwork.cs" company="Exit Games GmbH">
 //   PhotonNetwork Framework for Unity - Copyright (C) 2018 Exit Games GmbH
@@ -3136,18 +3137,25 @@ namespace Photon.Pun
 
             // in the editor, store the settings file as it's not loaded
             #if  UNITY_EDITOR
+#if GAMEWORKSTORE
+            var dir = Path.Combine(Application.dataPath, "Resources");
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            AssetDatabase.CreateAsset(photonServerSettings, "Assets/Resources/" + PhotonNetwork.ServerSettingsFileName + ".asset");
+#else
             string punResourcesDirectory = PhotonNetwork.FindPunAssetFolder() + "Resources/";
             string serverSettingsAssetPath = punResourcesDirectory + PhotonNetwork.ServerSettingsFileName + ".asset";
             string serverSettingsDirectory = Path.GetDirectoryName(serverSettingsAssetPath);
-
 
             if (!Directory.Exists(serverSettingsDirectory))
             {
                 Directory.CreateDirectory(serverSettingsDirectory);
                 AssetDatabase.ImportAsset(serverSettingsDirectory);
             }
-
             AssetDatabase.CreateAsset(photonServerSettings, serverSettingsAssetPath);
+#endif
             AssetDatabase.SaveAssets();
 
             // if the project does not have PhotonServerSettings yet, enable "Development Build" to use the Dev Region.

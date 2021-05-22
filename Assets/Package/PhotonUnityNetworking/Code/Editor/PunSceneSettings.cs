@@ -1,3 +1,4 @@
+#define GAMEWORKSTORE
 // ----------------------------------------------------------------------------
 // <copyright file="PunSceneSettings.cs" company="Exit Games GmbH">
 //   PhotonNetwork Framework for Unity - Copyright (C) 2018 Exit Games GmbH
@@ -84,6 +85,19 @@ namespace Photon.Pun
                     return instanceField;
                 }
 
+#if GAMEWORKSTORE
+                foreach (var guid in AssetDatabase.FindAssets("t:PunSceneSettings")) {
+                    instanceField = AssetDatabase.LoadAssetAtPath<PunSceneSettings>(AssetDatabase.GUIDToAssetPath(guid));
+                    return instanceField;
+                }
+                instanceField = CreateInstance<PunSceneSettings>();
+                var dir = Path.Combine(Application.dataPath, "Editor");
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                AssetDatabase.CreateAsset(instanceField, "Assets/Editor/PunSceneSettings.asset");
+#else
                 instanceField = (PunSceneSettings)AssetDatabase.LoadAssetAtPath(PunSceneSettingsCsPath, typeof(PunSceneSettings));
                 if (instanceField == null)
                 {
@@ -101,7 +115,7 @@ namespace Photon.Pun
                     }
                     #pragma warning restore 0168
                 }
-
+#endif
                 return instanceField;
             }
         }
