@@ -1,93 +1,106 @@
-# Photon Pun SDK C#
+# GameLiftServerSdk C#
 
-Unity NPM version of Photon PUN SDK! This repository applies the same license terms of the original distribution method.
+Unity NPM version of Game Lift Managed Server C# SDK! This repository applies the same license terms of the original version.
 
-Original Source Location: [https://assetstore.unity.com/packages/tools/network/pun-2-free-119922](https://assetstore.unity.com/packages/tools/network/pun-2-free-119922).
+Original Source Location: [https://aws.amazon.com/pt/gamelift/getting-started/](https://aws.amazon.com/pt/gamelift/getting-started/).
 
 # How to install
 
 At package.json, add these line of code:
-> "com.gameworkstore.photonpunsdk": "git://github.com/GameWorkstore/photon-pun-sdk"
+> "com.gameworkstore.gameliftsdk": "git://github.com/GameWorkstore/gamelift-server-sdk"
 
 And wait for unity to download and compile the package.
 
-you can upgrade your version by including the release version at end of the link:
-> "com.gameworkstore.photonpunsdk": "git://github.com/GameWorkstore/photon-pun-sdk#2.3.1"
+for update package for a newer version, install UpmGitExtension and update on [ Window > Package Manager ]!
+> https://github.com/mob-sakai/UpmGitExtension
 
 ## Documention
+You can find the official GameLift documentation [here](https://aws.amazon.com/documentation/gamelift/).
 
-Photon Unity Networking (PUN)
-    This package includes the Photon Unity Networking Api, the Realtime Api (on which PUN is based) and other optional Photon APIs.
-    Also included: A setup wizard, demo scenes, documentation and Editor extensions.
+###  Check Scripting Runtime Version setting
+Make sure you set the Scripting Runtime Version to the .Net solution you're using. 
+Otherwise, Unity will throw errors when importing the DLLs.  
+From the Unity editor, go to:  
+File->Build Settings->Player Settings. Under Other Settings->Configuration->Scripting Runtime Version
 
+At this point, you should be ready to start playing with the SDK!
 
-PUN Free versus PUN+
-    The content of the PUN Free and PUN+ packages are identical.
-    We offer a PUN+ package which includes a one-off Photon Cloud Subscription for 100 CCU. See below how this is applied.
+### Example code
+Below is a simple MonoBehavior that showcases a simple game server initialization with GameLift.
+```csharp
+using UnityEngine;
+using Aws.GameLift.Server;
+using System.Collections.Generic;
 
+public class GameLiftServerExampleBehavior : MonoBehaviour
+{
+    //This is an example of a simple integration with GameLift server SDK that will make game server processes go active on GameLift!
+    public void Start()
+    {
+        //Identify port number (hard coded here for simplicity) the game server is listening on for player connections
+        var listeningPort = 7777;
 
-UnityScript / JavaScript
-    We do not support UnityScript with PUN v2 and up.
+        //InitSDK will establish a local connection with GameLift's agent to enable further communication.
+        var initSDKOutcome = GameLiftServerAPI.InitSDK();
+        if (initSDKOutcome.Success)
+        {
+            ProcessParameters processParameters = new ProcessParameters(
+                (gameSession) => {
+                    //When a game session is created, GameLift sends an activation request to the game server and passes along the game session object containing game properties and other settings.
+                    //Here is where a game server should take action based on the game session object.
+                    //Once the game server is ready to receive incoming player connections, it should invoke GameLiftServerAPI.ActivateGameSession()
+                    GameLiftServerAPI.ActivateGameSession();
+                },
+                (updateGameSession) => {
+                    //When a game session is updated (e.g. by FlexMatch backfill), GameLiftsends a request to the game
+                    //server containing the updated game session object.  The game server can then examine the provided
+                    //matchmakerData and handle new incoming players appropriately.
+                    //updateReason is the reason this update is being supplied.
+                },
+                () => {
+                    //OnProcessTerminate callback. GameLift will invoke this callback before shutting down an instance hosting this game server.
+                    //It gives this game server a chance to save its state, communicate with services, etc., before being shut down.
+                    //In this case, we simply tell GameLift we are indeed going to shutdown.
+                    GameLiftServerAPI.ProcessEnding();
+                }, 
+                () => {
+                    //This is the HealthCheck callback.
+                    //GameLift will invoke this callback every 60 seconds or so.
+                    //Here, a game server might want to check the health of dependencies and such.
+                    //Simply return true if healthy, false otherwise.
+                    //The game server has 60 seconds to respond with its health status. GameLift will default to 'false' if the game server doesn't respond in time.
+                    //In this case, we're always healthy!
+                    return true;
+                },
+                listeningPort, //This game server tells GameLift that it will listen on port 7777 for incoming player connections.
+                new LogParameters(new List<string>()
+                {
+                    //Here, the game server tells GameLift what set of files to upload when the game session ends.
+                    //GameLift will upload everything specified here for the developers to fetch later.
+                    "/local/game/logs/myserver.log"
+                }));
 
+            //Calling ProcessReady tells GameLift this game server is ready to receive incoming game sessions!
+            var processReadyOutcome = GameLiftServerAPI.ProcessReady(processParameters);
+            if (processReadyOutcome.Success)
+            {
+                print("ProcessReady success.");
+            }
+            else
+            {
+                print("ProcessReady failure : " + processReadyOutcome.Error.ToString());
+            }
+        }
+        else
+        {
+            print("InitSDK failure : " + initSDKOutcome.Error.ToString());
+        }
+    }
 
-Help and Documentation
-    Please read the included chm (or pdf).
-    Exit Games Forum:       https://forum.photonengine.com/categories/unity-networking-plugin-pun
-    Online documentation:   https://doc.photonengine.com/en-us/pun/v2
-    Unity Forum Thread:     https://forum.unity3d.com/threads/photon-unity-networking.101734/
-
-
-Integration
-    This package adds an Editor window "PUN Wizard" for connection setup:
-        Menu -> Window -> Photon Unity Networking (shortcut: ALT+P)
-    It also adds a commonly used component "PhotonView" to this menu:
-        Menu -> Component -> Miscellaneous -> PhotonView (shortcut: ALT+V)
-    When imported into a new, empty project, the "PunStartup" script opens the "demo hub" and setup scenes to build.
-
-
-Clean PUN Import (no demos)
-    To get a clean import of PUN, just skip all folders named "Demos".
-    The folder "UtilityScripts" can be useful for rapid prototyping but the components are optional.
-
-
-Server
-    Exit Games Photon can be run on your servers or you can subscribe to the Photon Cloud for managed servers.
-
-    The window "Photon Unity Networking" will help you setup a Photon Cloud account.
-    This service is geared towards room-based games and the server cannot be modified.
-    Read more about it: https://www.photonengine.com
-
-    Alternatively, download the Server SDK and run your own Photon Server.
-    The SDK has the binaries to run immediately but also includes the source code and projects
-    for the game logic. You can use that as basis to modify and extend it.
-    A 100 concurrent user license for the server is provided for free.
-    Read more about it: https://www.photonengine.com/en-us/OnPremise
-
-
-PUN+ Subscriptions
-    Follow these steps when you bought an asset that includes a Photon Cloud subscription:
-        � Sign in and open the Dashboard.                       https://dashboard.photonengine.com
-          Use an existing Photon Cloud Account or register.
-        � Select the Application/Subscription to upgrade and click "Add Coupon / PUN+".
-        � Enter your Unity Invoice Number.
-
-        � Find the App ID on: https://dashboard.photonengine.com
-        � Find your Unity Invoice Number in the Unity AssetStore:
-            https://www.assetstore.unity3d.com/en/#!/account/transactions
-            Or while logged in to the Asset Store, click on your name on the top right.
-            From the drop-down select the payment method you used in your purchase.
-            Navigate to your purchase and copy the number following the "#" symbol (excluding the "#" and spaces).
-
-
-Important Files
-
-    Documentation
-        PhotonNetwork-Documentation.chm (a pdf is also included)
-        changelog.txt
-
-    The server-setup will be saved as file (can be moved into any Resources folder and edited in inspector)
-        Photon\PhotonUnityNetworking\Resources\PhotonServerSettings.asset
-
-    Demos
-        All demos are in separate folders in Photon\PhotonUnityNetworking\Demos\. Delete this folder in your projects.
-        Each has a Demo<name>-Scene.
+    void OnApplicationQuit()
+    {
+        //Make sure to call GameLiftServerAPI.Destroy() when the application quits. This resets the local connection with GameLift's agent.
+        GameLiftServerAPI.Destroy();
+    }
+}
+```
